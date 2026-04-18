@@ -469,27 +469,26 @@ function startVoice(target){
   if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){ st.textContent='음성 인식 미지원 브라우저'; return; }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const rec=new SR();
-  rec.lang=voiceLang[target]; rec.continuous=true; rec.interimResults=true;
+  rec.lang=voiceLang[target];
+  rec.continuous=false;
+  rec.interimResults=false;
   voiceRec[target]=rec; voiceOn[target]=true;
   const ta=$(target==='memo'?'memo-input':'review-input');
-  let base=ta.value; if(base&&!base.endsWith('\n')) base+='\n';
-  rec.onstart=()=>{ btn.classList.add('listening'); btn.textContent='⏹'; st.textContent='듣고 있어요…'; st.classList.add('active'); };
+  btn.classList.add('listening'); btn.textContent='⏹';
+  st.textContent='듣고 있어요…'; st.classList.add('active');
   rec.onresult=e=>{
-    let interim='';
-    for(let i=0;i<e.results.length;i++){
-      const t=e.results[i][0].transcript;
-      if(e.results[i].isFinal){
-        if(i>=e.resultIndex) base+=t;
-      } else {
-        interim+=t;
-      }
-    }
-    ta.value=base+interim;
-    st.textContent=interim?'"'+interim.slice(0,30)+'…"':'듣고 있어요…';
+    const text=e.results[0][0].transcript;
+    const cur=ta.value;
+    ta.value=cur+(cur&&!cur.endsWith('\n')&&!cur.endsWith(' ')?'\n':'')+text;
+    st.textContent='"'+text.slice(0,30)+(text.length>30?'…':'')+'"';
     if(target==='review') debounceReview();
   };
-  rec.onerror=e=>{ st.textContent=e.error==='not-allowed'?'마이크 권한이 필요해요':'오류: '+e.error; stopVoice(target); };
-  rec.onend=()=>{ if(voiceOn[target]) rec.start(); };
+  rec.onerror=e=>{
+    if(e.error==='no-speech'){ if(voiceOn[target]) rec.start(); return; }
+    st.textContent=e.error==='not-allowed'?'마이크 권한이 필요해요':'오류: '+e.error;
+    stopVoice(target);
+  };
+  rec.onend=()=>{ if(voiceOn[target]){ rec.start(); st.textContent='듣고 있어요…'; } };
   rec.start();
 }
 
