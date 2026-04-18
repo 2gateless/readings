@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#2e6e38">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/favicon.png">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
+<style>
+:root {
+  --bg: #daebd4;
+  --bg2: #c8dfbf;
+  --bg3: #b8d3ae;
+  --surface: #e8f3e3;
+  --text: #1a2e16;
+  --text2: #4a6644;
+  --text3: #82a67a;
+  --accent: #2e6e38;
+  --border: #8fba84;
+  --border2: #6fa063;
+  --danger: #c0392b;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --font: -apple-system, 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); font-family: var(--font); color: var(--text); font-size: 15px; }
+.app { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; border-left: 1.5px solid var(--border2); border-right: 1.5px solid var(--border2); background: var(--bg); }
+.screen { display: none; flex: 1; flex-direction: column; }
+.screen.active { display: flex; }
+button { font-family: var(--font); cursor: pointer; border: none; background: none; }
+input, textarea { font-family: var(--font); color: var(--text); }
+
+/* 헤더 */
+.header { padding: 20px 20px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid var(--border2); background: var(--bg2); position: sticky; top: 0; z-index: 10; }
+.header-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+.header-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.back-btn { display: flex; align-items: center; gap: 4px; font-size: 14px; color: var(--accent); font-weight: 600; padding: 4px 0; }
+
+/* 동기화 상태 */
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #aaa; display: inline-block; margin-left: 6px; vertical-align: middle; transition: background 0.3s; }
+.sync-dot.ok { background: #3a3; }
+.sync-dot.syncing { background: #fa0; animation: blink 0.7s infinite; }
+.sync-dot.err { background: #e33; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* 목록 */
+.list-body { flex: 1; overflow-y: auto; padding: 14px 14px 100px; display: flex; flex-direction: column; gap: 10px; }
+.book-row { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1.5px solid var(--border2); border-radius: var(--radius); background: var(--surface); cursor: pointer; transition: background 0.15s; }
+.book-row:active { background: var(--bg3); }
+.book-thumb { width: 46px; height: 62px; border-radius: 6px; background: var(--bg2); border: 1.5px solid var(--border); flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.book-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.book-row-info { flex: 1; min-width: 0; }
+.book-row-title { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.book-row-author { font-size: 12px; color: var(--text2); margin-top: 3px; }
+.book-row-meta { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.book-row-arrow { color: var(--text3); font-size: 18px; }
+.fab { position: fixed; bottom: 28px; right: 50%; transform: translateX(50%); max-width: calc(480px - 40px); width: calc(100% - 40px); background: var(--accent); color: #fff; border-radius: 14px; padding: 15px; font-size: 15px; font-weight: 700; letter-spacing: -0.2px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1.5px solid var(--border2); box-shadow: 0 4px 16px rgba(46,110,56,0.3); z-index: 20; }
+.fab:active { opacity: 0.85; }
+.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 10px; }
+.empty-state .big-icon { font-size: 48px; margin-bottom: 8px; }
+.empty-state p { font-size: 14px; text-align: center; line-height: 1.6; color: var(--text2); }
+
+/* 로딩 */
+.loading-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 13px; color: var(--text2); }
+
+/* 상세 */
+.detail-body { flex: 1; overflow-y: auto; padding-bottom: 40px; }
+.cover-section { padding: 16px 14px; display: flex; gap: 14px; align-items: flex-start; background: var(--bg2); border-bottom: 1.5px solid var(--border2); }
+.cover-upload { width: 88px; height: 118px; border-radius: 10px; background: var(--bg3); border: 1.5px dashed var(--border2); display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; position: relative; cursor: pointer; }
+.cover-upload img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cover-upload input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.cover-hint { font-size: 10px; color: var(--text3); text-align: center; line-height: 1.5; z-index: 1; pointer-events: none; }
+.cover-hint-icon { font-size: 20px; margin-bottom: 4px; }
+.book-fields { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+.field-block { display: flex; flex-direction: column; gap: 4px; }
+.field-label { font-size: 10px; font-weight: 700; color: var(--text3); letter-spacing: 0.6px; text-transform: uppercase; }
+.field-input { font-size: 15px; border: none; outline: none; background: none; border-bottom: 1.5px solid var(--border); padding: 4px 0 6px; width: 100%; letter-spacing: -0.2px; color: var(--text); }
+.field-input::placeholder { color: var(--text3); }
+.field-input.title { font-size: 17px; font-weight: 700; }
+.field-input:focus { border-bottom-color: var(--accent); }
+
+/* 탭 */
+.tab-bar { display: flex; border-bottom: 1.5px solid var(--border2); background: var(--bg2); padding: 0 14px; }
+.tab-btn { flex: 1; padding: 12px 0; font-size: 14px; font-weight: 600; color: var(--text3); border-bottom: 2.5px solid transparent; margin-bottom: -1.5px; transition: color 0.15s, border-color 0.15s; }
+.tab-btn.on { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-pane { display: none; padding: 0 14px; }
+.tab-pane.on { display: block; }
+
+/* 메모 */
+.memo-input-wrap { padding: 14px 0 0; position: relative; }
+.memo-textarea { width: 100%; min-height: 90px; background: var(--surface); border: 1.5px solid var(--border2); border-radius: var(--radius-sm); padding: 12px 12px 40px; font-size: 14px; line-height: 1.7; resize: none; outline: none; color: var(--text); transition: border-color 0.15s; }
+.memo-textarea:focus { border-color: var(--accent); }
+.memo-textarea::placeholder { color: var(--text3); }
+.memo-save-btn { position: absolute; bottom: 8px; right: 8px; background: var(--accent); color: #fff; border-radius: 8px; padding: 5px 14px; font-size: 13px; font-weight: 700; }
+.memo-save-btn:active { opacity: 0.8; }
+.voice-bar { display: flex; align-items: center; gap: 10px; margin-top: 10px; background: var(--surface); border: 1.5px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 14px; }
+.voice-btn { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; background: var(--bg3); border: 1.5px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 18px; transition: background 0.15s; }
+.voice-btn.listening { background: #e74c3c; border-color: #c0392b; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
+.voice-status { font-size: 13px; color: var(--text2); flex: 1; line-height: 1.5; }
+.voice-status.active { color: #c0392b; font-weight: 600; }
+.voice-lang-toggle { font-size: 11px; font-weight: 700; color: var(--text2); background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; }
+.memo-section-label { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: 0.5px; text-transform: uppercase; padding: 18px 0 8px; }
+.memo-item { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 8px; }
+.memo-item-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.memo-item-date { font-size: 11px; color: var(--text3); }
+.memo-edit-btn { font-size: 11px; color: var(--accent); padding: 2px 8px; border-radius: 6px; background: var(--accent-light,#d4ebcc); border: 1px solid var(--border); }
+.memo-edit-area { width: 100%; min-height: 80px; background: var(--bg); border: 1.5px solid var(--accent); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 14px; line-height: 1.7; resize: none; outline: none; color: var(--text); }
+.memo-save-edit-btn { font-size: 12px; font-weight: 700; color: #fff; background: var(--accent); border-radius: 7px; padding: 4px 12px; }
+.memo-cancel-btn { font-size: 12px; color: var(--text2); background: var(--bg2); border: 1px solid var(--border); border-radius: 7px; padding: 4px 10px; }
+
+.memo-item-text { font-size: 14px; line-height: 1.75; color: var(--text); white-space: pre-wrap; word-break: break-all; }
+.memo-empty { padding: 32px 0; text-align: center; font-size: 13px; color: var(--text3); }
+
+/* 독후감 */
+.review-wrap { padding: 14px 0; }
+.review-voice-bar { margin-bottom: 10px; }
+.review-box { background: var(--surface); border: 1.5px solid var(--border2); border-radius: var(--radius-sm); padding: 14px; }
+.review-area { width: 100%; min-height: 240px; background: none; border: none; outline: none; resize: none; font-size: 15px; line-height: 1.8; color: var(--text); }
+.review-area::placeholder { color: var(--text3); }
+.review-count { font-size: 11px; color: var(--text3); text-align: right; margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
+
+/* 삭제 버튼 */
+.del-book-btn { font-size: 13px; color: var(--text2); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); }
+.del-book-btn:active { background: #fde8e8; color: var(--danger); }
+
+/* 모달 */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: flex-end; justify-content: center; z-index: 100; }
+.modal-bg.open { display: flex; }
+.modal { background: var(--bg); width: 100%; max-width: 480px; border-radius: 24px 24px 0 0; border: 1.5px solid var(--border2); border-bottom: none; padding: 8px 24px 44px; animation: slideUp 0.25s ease; }
+@keyframes slideUp { from { transform: translateY(60px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 10px auto 20px; }
+.modal-title { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+.modal-field { margin-bottom: 16px; }
+.modal-label { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: 0.5px; margin-bottom: 6px; }
+.modal-input { width: 100%; border: none; border-bottom: 1.5px solid var(--border2); padding: 8px 0; font-size: 16px; outline: none; background: none; color: var(--text); }
+.modal-input:focus { border-bottom-color: var(--accent); }
+.modal-input::placeholder { color: var(--text3); }
+.modal-btn { width: 100%; background: var(--accent); color: #fff; border-radius: 14px; padding: 15px; font-size: 16px; font-weight: 700; margin-top: 8px; border: 1.5px solid var(--border2); }
+.modal-btn:active { opacity: 0.85; }
+.modal-cancel { width: 100%; padding: 12px; font-size: 14px; color: var(--text2); margin-top: 4px; }
+
+/* 토스트 */
+.toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(30,50,25,0.88); color: #fff; border-radius: 20px; padding: 9px 20px; font-size: 13px; font-weight: 500; white-space: nowrap; opacity: 0; transition: opacity 0.25s; pointer-events: none; z-index: 200; }
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- 목록 화면 -->
+<div id="screen-list" class="screen active">
+  <div class="header">
+    <div>
+      <div class="header-title">나의 서재 <span class="sync-dot" id="sync-dot"></span></div>
+      <div class="header-sub" id="book-count-label">읽은 책 0권</div>
+    </div>
+  </div>
+  <div class="list-body" id="list-body">
+    <div class="loading-wrap" id="loading-wrap">
+      <div class="spinner"></div>
+      <div class="loading-text">불러오는 중…</div>
+    </div>
+  </div>
+  <button class="fab" onclick="openAddModal()">
+    <span style="font-size:18px;line-height:1">+</span> 새 책 추가
+  </button>
+</div>
+
+<!-- 상세 화면 -->
+<div id="screen-detail" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goList()">
+      <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      서재
+    </button>
+    <button class="del-book-btn" onclick="deleteBook()">삭제</button>
+  </div>
+  <div class="detail-body">
+    <div class="cover-section">
+      <div class="cover-upload" id="cover-area">
+        <img id="cover-img" style="display:none">
+        <div class="cover-hint" id="cover-hint">
+          <div class="cover-hint-icon">🖼</div>
+          <div>표지 추가</div>
+        </div>
+        <input type="file" id="cover-file" accept="image/*" onchange="handleCover(event)" onclick="event.stopPropagation()">
+      </div>
+      <div class="book-fields">
+        <div class="field-block">
+          <div class="field-label">제목</div>
+          <input class="field-input title" id="book-title-input" type="text" placeholder="책 제목" oninput="debounceSave()">
+        </div>
+        <div class="field-block">
+          <div class="field-label">저자</div>
+          <input class="field-input" id="book-author-input" type="text" placeholder="저자 이름" oninput="debounceSave()">
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn on" onclick="switchTab('memo',this)">메모</button>
+      <button class="tab-btn" onclick="switchTab('review',this)">독후감</button>
+    </div>
+
+    <div class="tab-pane on" id="tab-memo">
+      <div class="memo-input-wrap">
+        <textarea class="memo-textarea" id="memo-input" placeholder="기억하고 싶은 문장을 붙여넣거나 직접 입력하세요…"></textarea>
+        <button class="memo-save-btn" onclick="addMemo()">저장</button>
+      </div>
+      <div class="voice-bar">
+        <button class="voice-btn" id="memo-voice-btn" onclick="toggleVoice('memo')">🎤</button>
+        <span class="voice-status" id="memo-voice-status">마이크 버튼을 눌러 말씀하세요</span>
+        <button class="voice-lang-toggle" id="memo-lang-btn" onclick="toggleLang('memo')">한국어</button>
+      </div>
+      <div class="memo-section-label" id="memo-count-label">메모 0개</div>
+      <div id="memo-list"></div>
+    </div>
+
+    <div class="tab-pane" id="tab-review">
+      <div class="review-wrap">
+        <div class="voice-bar review-voice-bar">
+          <button class="voice-btn" id="review-voice-btn" onclick="toggleVoice('review')">🎤</button>
+          <span class="voice-status" id="review-voice-status">마이크 버튼을 눌러 말씀하세요</span>
+          <button class="voice-lang-toggle" id="review-lang-btn" onclick="toggleLang('review')">한국어</button>
+        </div>
+        <div class="review-box">
+          <textarea class="review-area" id="review-input" placeholder="이 책을 읽고 떠오른 생각, 느낌, 배운 것들을 자유롭게 남겨보세요…" oninput="debounceReview()"></textarea>
+          <div class="review-count" id="review-count">0자</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- 모달 -->
+<div class="modal-bg" id="add-modal" onclick="onModalBgClick(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">새 책 추가</div>
+    <div class="modal-field">
+      <div class="modal-label">책 제목</div>
+      <input class="modal-input" id="new-title" type="text" placeholder="제목을 입력하세요">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">저자</div>
+      <input class="modal-input" id="new-author" type="text" placeholder="저자 이름 (선택)">
+    </div>
+    <button class="modal-btn" onclick="addBook()">추가하기</button>
+    <button class="modal-cancel" onclick="closeAddModal()">취소</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, updateDoc, addDoc, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDCr6FqxfyXmB8Bzmc_j5DOjJSEvAlF5jc",
+  authDomain: "readings-b6542.firebaseapp.com",
+  projectId: "readings-b6542",
+  storageBucket: "readings-b6542.firebasestorage.app",
+  messagingSenderId: "1739728146",
+  appId: "1:1739728146:web:2f8f8a47e489e65193ffcb"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ── 상태 ──
+let books = [];
+let curId = null;
+let saveTimer = null;
+let reviewTimer = null;
+let unsubBooks = null;
+let unsubMemos = null;
+
+const syncDot = document.getElementById('sync-dot');
+const setSyncing = () => syncDot.className = 'sync-dot syncing';
+const setSynced  = () => syncDot.className = 'sync-dot ok';
+const setSyncErr = () => syncDot.className = 'sync-dot err';
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── 책 목록 실시간 구독 ──
+function subscribeBooks() {
+  setSyncing();
+  const q = query(collection(db, 'books'), orderBy('createdAt', 'desc'));
+  unsubBooks = onSnapshot(q, snap => {
+    books = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    setSynced();
+    renderList();
+  }, () => setSyncErr());
+}
+
+// ── 목록 렌더 ──
+function renderList() {
+  const body = document.getElementById('list-body');
+  document.getElementById('book-count-label').textContent = `읽은 책 ${books.length}권`;
+  if (!books.length) {
+    body.innerHTML = `<div class="empty-state"><div class="big-icon">📚</div><p>아직 책이 없어요.<br>첫 번째 책을 추가해볼까요?</p></div>`;
+    return;
+  }
+  body.innerHTML = books.map(b => {
+    const thumb = b.cover
+      ? `<div class="book-thumb"><img src="${b.cover}" alt=""></div>`
+      : `<div class="book-thumb">📖</div>`;
+    return `<div class="book-row" onclick="window._openBook('${b.id}')">
+      ${thumb}
+      <div class="book-row-info">
+        <div class="book-row-title">${esc(b.title||'제목 없음')}</div>
+        <div class="book-row-author">${esc(b.author||'저자 미상')}</div>
+        <div class="book-row-meta">메모 ${b.memoCount||0}개</div>
+      </div>
+      <div class="book-row-arrow">›</div>
+    </div>`;
+  }).join('');
+}
+
+// ── 책 열기 ──
+window._openBook = async function(id) {
+  curId = id;
+  const b = books.find(x => x.id === id);
+  if (!b) return;
+  document.getElementById('book-title-input').value = b.title || '';
+  document.getElementById('book-author-input').value = b.author || '';
+  const img = document.getElementById('cover-img');
+  const hint = document.getElementById('cover-hint');
+  if (b.cover) { img.src = b.cover; img.style.display = 'block'; hint.style.display = 'none'; }
+  else { img.style.display = 'none'; hint.style.display = 'flex'; }
+  subscribeMemos(id);
+  const rv = document.getElementById('review-input');
+  rv.value = b.review || '';
+  document.getElementById('review-count').textContent = rv.value.length + '자';
+  showScreen('detail');
+  switchTabByName('memo');
+};
+
+// ── 메모 실시간 구독 ──
+function subscribeMemos(bookId) {
+  if (unsubMemos) unsubMemos();
+  const q = query(collection(db, 'books', bookId, 'memos'), orderBy('createdAt', 'asc'));
+  unsubMemos = onSnapshot(q, snap => {
+    const memos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderMemos(memos);
+  });
+}
+
+function renderMemos(memos) {
+  const list = document.getElementById('memo-list');
+  const lbl = document.getElementById('memo-count-label');
+  if (!list || !lbl) return;
+  lbl.textContent = `메모 ${memos.length}개`;
+  if (!memos.length) { list.innerHTML = '<div class="memo-empty">아직 메모가 없어요</div>'; return; }
+  list.innerHTML = memos.map(m => {
+    const d = m.createdAt ? m.createdAt.toDate() : new Date();
+    const ds = `${d.getFullYear()}.${p2(d.getMonth()+1)}.${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+    return `<div class="memo-item" id="memo-${m.id}">
+      <div class="memo-item-head">
+        <span class="memo-item-date">${ds}</span>
+        <div style="display:flex;gap:6px">
+          <button class="memo-edit-btn" onclick="window._editMemo('${m.id}')">수정</button>
+          <button class="memo-del-btn" onclick="window._deleteMemo('${m.id}')">삭제</button>
+        </div>
+      </div>
+      <div class="memo-item-text" id="memo-text-${m.id}">${esc(m.text)}</div>
+      <div class="memo-edit-wrap" id="memo-edit-${m.id}" style="display:none;margin-top:8px">
+        <textarea class="memo-edit-area" id="memo-textarea-${m.id}">${esc(m.text)}</textarea>
+        <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px">
+          <button class="memo-cancel-btn" onclick="window._cancelEdit('${m.id}')">취소</button>
+          <button class="memo-save-edit-btn" onclick="window._saveEdit('${m.id}')">저장</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 새 책 추가 ──
+window._addBook = async function() {
+  const title = document.getElementById('new-title').value.trim();
+  if (!title) { document.getElementById('new-title').focus(); return; }
+  setSyncing();
+  try {
+    const ref = await addDoc(collection(db, 'books'), {
+      title, author: document.getElementById('new-author').value.trim(),
+      cover: null, review: '', memoCount: 0,
+      createdAt: serverTimestamp()
+    });
+    closeAddModal();
+    window._openBook(ref.id);
+    showToast('책이 추가됐어요');
+    setSynced();
+  } catch(e) { setSyncErr(); showToast('저장 실패: ' + e.message); }
+};
+
+// ── 책 삭제 ──
+window._deleteBook = async function() {
+  if (!confirm('이 책의 모든 내용이 삭제됩니다. 계속할까요?')) return;
+  setSyncing();
+  try {
+    await deleteDoc(doc(db, 'books', curId));
+    goList(); showToast('삭제됐어요'); setSynced();
+  } catch(e) { setSyncErr(); showToast('삭제 실패'); }
+};
+
+// ── 책 메타 저장 (debounce) ──
+window._debounceSave = function() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    if (!curId) return;
+    setSyncing();
+    try {
+      await updateDoc(doc(db, 'books', curId), {
+        title: document.getElementById('book-title-input').value,
+        author: document.getElementById('book-author-input').value
+      });
+      setSynced();
+    } catch(e) { setSyncErr(); }
+  }, 800);
+};
+
+// ── 표지 저장 ──
+window._handleCover = function(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const img = document.getElementById('cover-img');
+    const hint = document.getElementById('cover-hint');
+    if (img) { img.src = ev.target.result; img.style.display = 'block'; }
+    if (hint) hint.style.display = 'none';
+    setSyncing();
+    try {
+      await updateDoc(doc(db, 'books', curId), { cover: ev.target.result });
+      setSynced(); showToast('표지가 저장됐어요');
+    } catch(e) { setSyncErr(); showToast('표지 저장 실패'); }
+  };
+  reader.readAsDataURL(file);
+};
+
+// ── 메모 추가 ──
+window._addMemo = async function() {
+  const inp = document.getElementById('memo-input');
+  const text = inp.value.trim(); if (!text || !curId) return;
+  setSyncing();
+  try {
+    await addDoc(collection(db, 'books', curId, 'memos'), { text, createdAt: serverTimestamp() });
+    await updateDoc(doc(db, 'books', curId), { memoCount: (books.find(b=>b.id===curId)?.memoCount||0) + 1 });
+    inp.value = ''; setSynced(); showToast('메모가 저장됐어요');
+  } catch(e) { setSyncErr(); showToast('저장 실패'); }
+};
+
+// ── 메모 삭제 ──
+window._deleteMemo = async function(mid) {
+  if (!confirm('이 메모를 삭제할까요?')) return;
+  setSyncing();
+  try {
+    await deleteDoc(doc(db, 'books', curId, 'memos', mid));
+    const cnt = Math.max(0, (books.find(b=>b.id===curId)?.memoCount||1) - 1);
+    await updateDoc(doc(db, 'books', curId), { memoCount: cnt });
+    setSynced(); showToast('메모가 삭제됐어요');
+  } catch(e) { setSyncErr(); showToast('삭제 실패'); }
+};
+
+// ── 독후감 저장 (debounce) ──
+window._debounceReview = function() {
+  const rv = document.getElementById('review-input');
+  document.getElementById('review-count').textContent = rv.value.length + '자';
+  clearTimeout(reviewTimer);
+  reviewTimer = setTimeout(async () => {
+    if (!curId) return;
+    setSyncing();
+    try {
+      await updateDoc(doc(db, 'books', curId), { review: rv.value });
+      setSynced(); showToast('독후감이 저장됐어요');
+    } catch(e) { setSyncErr(); }
+  }, 1000);
+};
+
+// ── 화면 전환 ──
+function goList() {
+  if (unsubMemos) { unsubMemos(); unsubMemos = null; }
+  showScreen('list');
+}
+window.goList = goList;
+
+function showScreen(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + n).classList.add('active');
+}
+
+function openAddModal() {
+  document.getElementById('new-title').value = '';
+  document.getElementById('new-author').value = '';
+  document.getElementById('add-modal').classList.add('open');
+  setTimeout(() => document.getElementById('new-title').focus(), 100);
+}
+window.openAddModal = openAddModal;
+function closeAddModal() { document.getElementById('add-modal').classList.remove('open'); }
+window.closeAddModal = closeAddModal;
+function onModalBgClick(e) { if (e.target === document.getElementById('add-modal')) closeAddModal(); }
+window.onModalBgClick = onModalBgClick;
+window.addBook = window._addBook;
+window.deleteBook = window._deleteBook;
+window.debounceSave = window._debounceSave;
+window.debounceReview = window._debounceReview;
+window.addMemo = window._addMemo;
+
+document.getElementById('cover-file').onchange = window._handleCover;
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('tab-' + name).classList.add('on');
+}
+window.switchTab = switchTab;
+function switchTabByName(name) {
+  document.querySelectorAll('.tab-btn').forEach((t,i) => t.classList.toggle('on', (name==='memo'&&i===0)||(name==='review'&&i===1)));
+  document.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('on'));
+  document.getElementById('tab-' + name).classList.add('on');
+}
+
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const p2 = n => String(n).padStart(2,'0');
+
+// ── 음성 인식 ──
+const voiceState = {
+  memo:   { recognition: null, listening: false, lang: 'ko-KR' },
+  review: { recognition: null, listening: false, lang: 'ko-KR' }
+};
+window.toggleLang = function(target) {
+  const s = voiceState[target];
+  s.lang = s.lang === 'ko-KR' ? 'en-US' : 'ko-KR';
+  document.getElementById(target+'-lang-btn').textContent = s.lang === 'ko-KR' ? '한국어' : 'English';
+};
+window.toggleVoice = function(target) {
+  const s = voiceState[target];
+  const btn = document.getElementById(target+'-voice-btn');
+  const status = document.getElementById(target+'-voice-status');
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    status.textContent = '이 브라우저는 음성 인식을 지원하지 않아요'; return;
+  }
+  if (s.listening) { s.recognition && s.recognition.stop(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = s.lang; rec.continuous = true; rec.interimResults = true;
+  s.recognition = rec;
+  const textarea = document.getElementById(target === 'memo' ? 'memo-input' : 'review-input');
+  let baseText = textarea.value;
+  if (baseText && !baseText.endsWith('\n')) baseText += '\n';
+  rec.onstart = () => {
+    s.listening = true; btn.classList.add('listening'); btn.textContent = '⏹';
+    status.textContent = '듣고 있어요…'; status.classList.add('active');
+  };
+  rec.onresult = e => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t; else interim += t;
+    }
+    if (final) baseText += final;
+    textarea.value = baseText + interim;
+    status.textContent = interim ? `"${interim.slice(0,30)}…"` : '듣고 있어요…';
+    if (target === 'review') window._debounceReview();
+  };
+  rec.onerror = e => {
+    status.textContent = e.error === 'not-allowed' ? '마이크 권한이 필요해요' : '오류: ' + e.error;
+    stopVoice(target);
+  };
+  rec.onend = () => { if (s.listening) rec.start(); };
+  rec.start();
+};
+function stopVoice(target) {
+  const s = voiceState[target];
+  s.listening = false; s.recognition && s.recognition.abort();
+  const btn = document.getElementById(target+'-voice-btn');
+  const status = document.getElementById(target+'-voice-status');
+  if (btn) { btn.classList.remove('listening'); btn.textContent = '🎤'; }
+  if (status) { status.textContent = '마이크 버튼을 눌러 말씀하세요'; status.classList.remove('active'); }
+}
+
+window._editMemo = function(mid) {
+  document.getElementById('memo-text-' + mid).style.display = 'none';
+  document.getElementById('memo-edit-' + mid).style.display = 'block';
+  const ta = document.getElementById('memo-textarea-' + mid);
+  ta.value = ta.value; ta.focus();
+};
+window._cancelEdit = function(mid) {
+  document.getElementById('memo-text-' + mid).style.display = 'block';
+  document.getElementById('memo-edit-' + mid).style.display = 'none';
+};
+window._saveEdit = async function(mid) {
+  const text = document.getElementById('memo-textarea-' + mid).value.trim();
+  if (!text) return;
+  setSyncing();
+  try {
+    await updateDoc(doc(db, 'books', curId, 'memos', mid), { text });
+    setSynced(); showToast('메모가 수정됐어요');
+  } catch(e) { setSyncErr(); showToast('수정 실패'); }
+};
+ e => { if (e.key==='Enter') window._addBook(); });
+document.getElementById('memo-input').addEventListener('keydown', e => { if (e.key==='Enter' && (e.ctrlKey||e.metaKey)) window._addMemo(); });
+
+// 시작
+subscribeBooks();
+</script>
+</body>
+</html>
