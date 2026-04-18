@@ -72,8 +72,7 @@ input,textarea{font-family:var(--font);color:var(--text)}
 .voice-btn{width:40px;height:40px;border-radius:50%;flex-shrink:0;background:var(--bg3);border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:18px;transition:background .15s}
 .voice-btn.listening{background:#e74c3c;border-color:#c0392b;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-.voice-status{font-size:13px;color:var(--text2);flex:1;line-height:1.5}
-.voice-lang-toggle{display:none}
+.voice-guide{font-size:12px;color:var(--text3);padding:8px 0 4px;}
 .memo-section-label{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;padding:18px 0 8px}
 .memo-item{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rsm);padding:12px 14px;margin-bottom:8px}
 .memo-item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
@@ -165,21 +164,13 @@ input,textarea{font-family:var(--font);color:var(--text)}
         <textarea class="memo-textarea" id="memo-input" placeholder="기억하고 싶은 문장을 붙여넣거나 직접 입력하세요…"></textarea>
         <button class="memo-save-btn" id="btn-add-memo">저장</button>
       </div>
-      <div class="voice-bar">
-        <button class="voice-btn" id="memo-voice-btn">🎤</button>
-        <span class="voice-status" id="memo-voice-status">마이크 버튼을 눌러 말씀하세요</span>
-        <button class="voice-lang-toggle" id="memo-lang-btn">한국어</button>
-      </div>
+      <div class="voice-guide">🎤 음성 입력: 입력창 탭 후 키보드 마이크 버튼 사용</div>
       <div class="memo-section-label" id="memo-count-label">메모 0개</div>
       <div id="memo-list"></div>
     </div>
     <div class="tab-pane" id="tab-review">
       <div class="review-wrap">
-        <div class="voice-bar review-voice-bar">
-          <button class="voice-btn" id="review-voice-btn">🎤</button>
-          <span class="voice-status" id="review-voice-status">마이크 버튼을 눌러 말씀하세요</span>
-          <button class="voice-lang-toggle" id="review-lang-btn">한국어</button>
-        </div>
+        <div class="voice-guide">🎤 음성 입력: 입력창 탭 후 키보드 마이크 버튼 사용</div>
         <div class="review-box">
           <textarea class="review-area" id="review-input" placeholder="이 책을 읽고 떠오른 생각, 느낌, 배운 것들을 자유롭게 남겨보세요…"></textarea>
           <div class="review-count" id="review-count">0자</div>
@@ -469,18 +460,6 @@ function startVoice(target){
   ta.focus();
   st.textContent='키보드 마이크 버튼을 눌러 말씀하세요';
 }
-
-$('memo-voice-btn').addEventListener('click', ()=>startVoice('memo'));
-$('review-voice-btn').addEventListener('click', ()=>startVoice('review'));
-
-$('memo-lang-btn').addEventListener('click', ()=>{
-  voiceLang.memo = voiceLang.memo==='ko-KR'?'en-US':'ko-KR';
-  $('memo-lang-btn').textContent = voiceLang.memo==='ko-KR'?'한국어':'English';
-});
-$('review-lang-btn').addEventListener('click', ()=>{
-  voiceLang.review = voiceLang.review==='ko-KR'?'en-US':'ko-KR';
-  $('review-lang-btn').textContent = voiceLang.review==='ko-KR'?'한국어':'English';
-});
 
 subscribeBooks();
 </script>
