@@ -300,6 +300,7 @@ function openBook(id){
   $('review-count').textContent = (b.review||'').length+'자';
   $('tab-memo-btn').click();
   showScreen('detail');
+  history.pushState({page:'detail'}, '');
 }
 
 function goList(){
@@ -307,7 +308,7 @@ function goList(){
   stopVoice('memo'); stopVoice('review');
   showScreen('list');
 }
-$('btn-back').addEventListener('click', goList);
+// btn-back은 popstate에서 처리
 
 // ── 새 책 모달 ──
 function openModal(){ $('new-title').value=''; $('new-author').value=''; $('add-modal').classList.add('open'); setTimeout(()=>$('new-title').focus(),100); }
@@ -478,6 +479,21 @@ function startVoice(target){
 }
 
 subscribeBooks();
-</script>
+
+// ── 안드로이드 뒤로가기 처리 ──
+history.pushState({page:'list'}, '');
+
+window.addEventListener('popstate', e => {
+  const detail = $('screen-detail');
+  if(detail && detail.classList.contains('active')) {
+    goList();
+    history.pushState({page:'list'}, '');
+  }
+});
+
+$('btn-back').addEventListener('click', () => {
+  goList();
+  history.pushState({page:'list'}, '');
+});</script>
 </body>
 </html>
