@@ -468,28 +468,44 @@ function startVoice(target){
   const btn=$(target+'-voice-btn'), st=$(target+'-voice-status');
   if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){ st.textContent='음성 인식 미지원 브라우저'; return; }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  const rec=new SR();
-  rec.lang=voiceLang[target];
-  rec.continuous=false;
-  rec.interimResults=false;
-  voiceRec[target]=rec; voiceOn[target]=true;
   const ta=$(target==='memo'?'memo-input':'review-input');
+  let gotResult=false;
+
+  function startRec(){
+    if(!voiceOn[target]) return;
+    const rec=new SR();
+    rec.lang=voiceLang[target];
+    rec.continuous=false;
+    rec.interimResults=false;
+    voiceRec[target]=rec;
+    gotResult=false;
+    rec.onresult=e=>{
+      gotResult=true;
+      const text=e.results[0][0].transcript.trim();
+      if(text){
+        const cur=ta.value;
+        ta.value=cur+(cur&&!cur.endsWith('\n')?' ':'')+text;
+        st.textContent='"'+text.slice(0,30)+(text.length>30?'…':'')+'"';
+        if(target==='review') debounceReview();
+      }
+    };
+    rec.onerror=e=>{
+      if(e.error==='no-speech'||e.error==='aborted') return;
+      st.textContent=e.error==='not-allowed'?'마이크 권한이 필요해요':'오류: '+e.error;
+      stopVoice(target);
+    };
+    rec.onend=()=>{
+      if(!voiceOn[target]) return;
+      st.textContent='듣고 있어요…';
+      setTimeout(startRec, gotResult?300:100);
+    };
+    try{ rec.start(); }catch(e){ setTimeout(startRec,200); }
+  }
+
+  voiceOn[target]=true;
   btn.classList.add('listening'); btn.textContent='⏹';
   st.textContent='듣고 있어요…'; st.classList.add('active');
-  rec.onresult=e=>{
-    const text=e.results[0][0].transcript;
-    const cur=ta.value;
-    ta.value=cur+(cur&&!cur.endsWith('\n')&&!cur.endsWith(' ')?'\n':'')+text;
-    st.textContent='"'+text.slice(0,30)+(text.length>30?'…':'')+'"';
-    if(target==='review') debounceReview();
-  };
-  rec.onerror=e=>{
-    if(e.error==='no-speech'){ if(voiceOn[target]) rec.start(); return; }
-    st.textContent=e.error==='not-allowed'?'마이크 권한이 필요해요':'오류: '+e.error;
-    stopVoice(target);
-  };
-  rec.onend=()=>{ if(voiceOn[target]){ rec.start(); st.textContent='듣고 있어요…'; } };
-  rec.start();
+  startRec();
 }
 
 $('memo-voice-btn').addEventListener('click', ()=>{ voiceOn.memo ? stopVoice('memo') : startVoice('memo'); });
