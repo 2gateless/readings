@@ -28,6 +28,17 @@ html, body { height: 100%; background: var(--bg); font-family: var(--font); colo
 button { font-family: var(--font); cursor: pointer; border: none; background: none; }
 input, textarea { font-family: var(--font); color: var(--text); }
 
+<meta name="theme-color" content="#2e6e38">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
+
 /* 헤더 */
 .header { padding: 20px 20px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid var(--border2); background: var(--bg2); position: sticky; top: 0; z-index: 10; }
 .header-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
