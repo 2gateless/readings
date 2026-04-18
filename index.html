@@ -73,8 +73,7 @@ input,textarea{font-family:var(--font);color:var(--text)}
 .voice-btn.listening{background:#e74c3c;border-color:#c0392b;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 .voice-status{font-size:13px;color:var(--text2);flex:1;line-height:1.5}
-.voice-status.active{color:#c0392b;font-weight:600}
-.voice-lang-toggle{font-size:11px;font-weight:700;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:4px 8px}
+.voice-lang-toggle{display:none}
 .memo-section-label{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;padding:18px 0 8px}
 .memo-item{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rsm);padding:12px 14px;margin-bottom:8px}
 .memo-item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
@@ -461,55 +460,18 @@ function stopVoice(target){
   voiceOn[target]=false;
   const btn=$(target+'-voice-btn'), st=$(target+'-voice-status');
   if(btn){ btn.classList.remove('listening'); btn.textContent='🎤'; }
-  if(st){ st.textContent='마이크 버튼을 눌러 말씀하세요'; st.classList.remove('active'); }
+  if(st){ st.textContent='키보드 마이크로 입력하세요'; st.classList.remove('active'); }
 }
 
 function startVoice(target){
-  const btn=$(target+'-voice-btn'), st=$(target+'-voice-status');
-  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){ st.textContent='음성 인식 미지원 브라우저'; return; }
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const ta=$(target==='memo'?'memo-input':'review-input');
-  let gotResult=false;
-
-  function startRec(){
-    if(!voiceOn[target]) return;
-    const rec=new SR();
-    rec.lang=voiceLang[target];
-    rec.continuous=false;
-    rec.interimResults=false;
-    voiceRec[target]=rec;
-    gotResult=false;
-    rec.onresult=e=>{
-      gotResult=true;
-      const text=e.results[0][0].transcript.trim();
-      if(text){
-        const cur=ta.value;
-        ta.value=cur+(cur&&!cur.endsWith('\n')?' ':'')+text;
-        st.textContent='"'+text.slice(0,30)+(text.length>30?'…':'')+'"';
-        if(target==='review') debounceReview();
-      }
-    };
-    rec.onerror=e=>{
-      if(e.error==='no-speech'||e.error==='aborted') return;
-      st.textContent=e.error==='not-allowed'?'마이크 권한이 필요해요':'오류: '+e.error;
-      stopVoice(target);
-    };
-    rec.onend=()=>{
-      if(!voiceOn[target]) return;
-      st.textContent='듣고 있어요…';
-      setTimeout(startRec, gotResult?300:100);
-    };
-    try{ rec.start(); }catch(e){ setTimeout(startRec,200); }
-  }
-
-  voiceOn[target]=true;
-  btn.classList.add('listening'); btn.textContent='⏹';
-  st.textContent='듣고 있어요…'; st.classList.add('active');
-  startRec();
+  const st=$(target+'-voice-status');
+  ta.focus();
+  st.textContent='키보드 마이크 버튼을 눌러 말씀하세요';
 }
 
-$('memo-voice-btn').addEventListener('click', ()=>{ voiceOn.memo ? stopVoice('memo') : startVoice('memo'); });
-$('review-voice-btn').addEventListener('click', ()=>{ voiceOn.review ? stopVoice('review') : startVoice('review'); });
+$('memo-voice-btn').addEventListener('click', ()=>startVoice('memo'));
+$('review-voice-btn').addEventListener('click', ()=>startVoice('review'));
 
 $('memo-lang-btn').addEventListener('click', ()=>{
   voiceLang.memo = voiceLang.memo==='ko-KR'?'en-US':'ko-KR';
