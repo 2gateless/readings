@@ -475,12 +475,15 @@ function startVoice(target){
   let base=ta.value; if(base&&!base.endsWith('\n')) base+='\n';
   rec.onstart=()=>{ btn.classList.add('listening'); btn.textContent='⏹'; st.textContent='듣고 있어요…'; st.classList.add('active'); };
   rec.onresult=e=>{
-    let interim='',final='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
+    let interim='';
+    for(let i=0;i<e.results.length;i++){
       const t=e.results[i][0].transcript;
-      if(e.results[i].isFinal) final+=t; else interim+=t;
+      if(e.results[i].isFinal){
+        if(i>=e.resultIndex) base+=t;
+      } else {
+        interim+=t;
+      }
     }
-    if(final) base+=final;
     ta.value=base+interim;
     st.textContent=interim?'"'+interim.slice(0,30)+'…"':'듣고 있어요…';
     if(target==='review') debounceReview();
