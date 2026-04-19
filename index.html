@@ -25,9 +25,9 @@ input,textarea{font-family:var(--font);color:var(--text)}
 .header-right{display:flex;align-items:center;gap:4px}
 .chrysanthemum{font-size:20px;line-height:1;color:#fff;text-shadow:0 0 2px #bbb}
 .chrysanthemum.y{color:#f5c842;text-shadow:0 0 2px #c89a10}
-.online-dot{width:9px;height:9px;border-radius:50%;background:#aaa;display:inline-block;margin-left:4px;border:1.5px solid rgba(0,0,0,.1)}
-.online-dot.online{background:#3a3}
-.online-dot.offline{background:#e33}
+.online-dot{width:10px;height:10px;border-radius:50%;background:#aaa;display:inline-block;margin-left:4px;border:1.5px solid rgba(0,0,0,.15);transition:background .3s}
+.online-dot.online{background:#22c55e}
+.online-dot.offline{background:#ef4444}
 .back-btn{display:flex;align-items:center;gap:4px;font-size:14px;color:var(--accent);font-weight:600;padding:4px 0}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:#aaa;display:inline-block;margin-left:6px;vertical-align:middle;transition:background .3s}
 .sync-dot.ok{background:#3a3}.sync-dot.syncing{background:#fa0;animation:blink .7s infinite}.sync-dot.err{background:#e33}
