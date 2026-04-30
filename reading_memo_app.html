@@ -527,7 +527,7 @@ function renderMemos() {
         <span class="memo-item-date">${ds}</span>
         <button class="memo-del-btn" onclick="deleteMemo('${m.id}')">삭제</button>
       </div>
-      <div class="memo-item-text">${esc(m.text)}</div>
+      <div class="memo-item-text">${linkify(m.text)}</div>
     </div>`;
   }).join('');
 }
@@ -557,6 +557,16 @@ function switchTabByName(name) {
 }
 
 const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function linkify(text) {
+  const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
+  return String(text).split(urlRegex).map((part, i) => {
+    if (i % 2 === 1) {
+      const escaped = esc(part);
+      return `<a href="${escaped}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);word-break:break-all;text-decoration:underline;">${escaped}</a>`;
+    }
+    return esc(part);
+  }).join('');
+}
 const p2 = n => String(n).padStart(2,'0');
 
 // ── 음성 인식 ──

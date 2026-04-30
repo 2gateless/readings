@@ -229,6 +229,16 @@ const voiceOn   = { memo:false, review:false };
 
 const $  = id => document.getElementById(id);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function linkify(text) {
+  const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
+  return String(text).split(urlRegex).map((part, i) => {
+    if (i % 2 === 1) {
+      const escaped = esc(part);
+      return '<a href="'+escaped+'" target="_blank" rel="noopener noreferrer" style="color:var(--accent);word-break:break-all;text-decoration:underline;">'+escaped+'</a>';
+    }
+    return esc(part);
+  }).join('');
+}
 const p2  = n => String(n).padStart(2,'0');
 const sd  = $('sync-dot');
 const setSyncing = () => sd.className='sync-dot syncing';
@@ -379,7 +389,7 @@ function renderMemos(memos){
           '<button class="memo-del-btn"  data-id="'+m.id+'">삭제</button>'+
         '</div>'+
       '</div>'+
-      '<div class="memo-item-text" id="mt-'+m.id+'">'+esc(m.text)+'</div>'+
+      '<div class="memo-item-text" id="mt-'+m.id+'">'+linkify(m.text)+'</div>'+
       '<div class="memo-edit-wrap" id="mew-'+m.id+'" style="display:none">'+
         '<textarea class="memo-edit-area" id="mta-'+m.id+'">'+esc(m.text)+'</textarea>'+
         '<div class="memo-edit-footer">'+
