@@ -11,6 +11,8 @@
 <link rel="icon" type="image/png" href="/favicon.png">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
 <style>
 :root{--bg:#daebd4;--bg2:#c8dfbf;--bg3:#b8d3ae;--surface:#e8f3e3;--text:#1a2e16;--text2:#4a6644;--text3:#82a67a;--accent:#2e6e38;--border:#8fba84;--border2:#6fa063;--danger:#c0392b;--radius:16px;--rsm:10px;--font:-apple-system,'Pretendard','Apple SD Gothic Neo',sans-serif}
@@ -257,6 +259,44 @@ function linkify(text) {
     return esc(part);
   }).join('');
 }
+
+// KaTeX 수식 렌더링 헬퍼
+const PURIFY_OPTS = {
+  ADD_TAGS: ['math','mrow','mi','mn','mo','msup','msub','mfrac','msubsup',
+             'mover','munder','moverunder','menclose','msqrt','mroot',
+             'mtable','mtr','mtd','mtext','mspace','mphantom','semantics','annotation'],
+  ADD_ATTR: ['xmlns','display','class','style','aria-hidden','focusable','role',
+             'viewBox','width','height','preserveAspectRatio','fill','stroke',
+             'stroke-width','d','x','y','x1','x2','y1','y2','cx','cy','r',
+             'rx','ry','transform','points','encoding']
+};
+function renderMath(raw) {
+  const blocks = [];
+  let processed = raw
+    .replace(/\$\$([\s\S]+?)\$\$/g, (_, expr) => {
+      const i = blocks.length;
+      blocks.push({ d: true, expr: expr.trim() });
+      return `MATH_BLOCK_${i}_END`;
+    })
+    .replace(/\$([^$\n]+?)\$/g, (_, expr) => {
+      const i = blocks.length;
+      blocks.push({ d: false, expr: expr.trim() });
+      return `MATH_INLINE_${i}_END`;
+    });
+  let html = marked.parse(processed, { breaks: true, gfm: true });
+  if (window.katex) {
+    html = html
+      .replace(/MATH_BLOCK_(\d+)_END/g, (_, i) => {
+        try { return katex.renderToString(blocks[i].expr, { displayMode: true,  throwOnError: false }); }
+        catch(e) { return `<code>$$${blocks[i].expr}$$</code>`; }
+      })
+      .replace(/MATH_INLINE_(\d+)_END/g, (_, i) => {
+        try { return katex.renderToString(blocks[i].expr, { displayMode: false, throwOnError: false }); }
+        catch(e) { return `<code>$${blocks[i].expr}$</code>`; }
+      });
+  }
+  return DOMPurify.sanitize(html, PURIFY_OPTS);
+}
 const p2  = n => String(n).padStart(2,'0');
 const sd  = $('sync-dot');
 const setSyncing = () => sd.className='sync-dot syncing';
@@ -410,7 +450,7 @@ function renderMemos(memos){
           '<button class="memo-del-btn"  data-id="'+m.id+'">삭제</button>'+
         '</div>'+
       '</div>'+
-      '<div class="memo-item-text md-content" id="mt-'+m.id+'">'+DOMPurify.sanitize(marked.parse(m.text, {breaks:true, gfm:true}))+'</div>'+
+      '<div class="memo-item-text md-content" id="mt-'+m.id+'">'+renderMath(m.text)+'</div>'+
       '<div class="memo-edit-wrap" id="mew-'+m.id+'" style="display:none">'+
         '<textarea class="memo-edit-area" id="mta-'+m.id+'">'+esc(m.text)+'</textarea>'+
         '<div class="memo-edit-footer">'+
@@ -492,7 +532,7 @@ if($('btn-review-toggle')) {
     const isEdit = $('review-input').style.display !== 'none';
     if(isEdit){
       $('review-input').style.display = 'none';
-      $('review-display').innerHTML = DOMPurify.sanitize(marked.parse($('review-input').value, {breaks:true, gfm:true}));
+      $('review-display').innerHTML = renderMath($('review-input').value);
       $('review-display').style.display = 'block';
       $('btn-review-toggle').textContent = '수정';
     } else {
