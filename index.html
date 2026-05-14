@@ -161,7 +161,10 @@ input,textarea{font-family:var(--font);color:var(--text)}
       서재
     </button>
     <span class="sync-dot" id="sync-dot"></span>
-    <button class="del-book-btn" id="btn-del-book">삭제</button>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button class="pin-book-btn" id="btn-pin-book" style="font-size:13px; color:var(--text2); padding:5px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg3); transition:all 0.15s;">📌 고정</button>
+      <button class="del-book-btn" id="btn-del-book">삭제</button>
+    </div>
   </div>  <div class="detail-body">
     <div class="cover-section">
       <div class="cover-upload">
@@ -325,6 +328,7 @@ function subscribeBooks(){
   setSyncing();
   unsubBooks = onSnapshot(query(collection(db,'books'),orderBy('createdAt','desc')), snap=>{
     books = snap.docs.map(d=>({id:d.id,...d.data()}));
+    books.sort((a,b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
     setSynced(); renderList();
   }, ()=>setSyncErr());
 }
@@ -335,12 +339,13 @@ function renderList(){
   if(!books.length){ body.innerHTML='<div class="empty-state"><div class="big-icon">📚</div><p>아직 책이 없어요.<br>첫 번째 책을 추가해볼까요?</p></div>'; return; }
   body.innerHTML = books.map(b=>{
     const thumb = b.cover ? '<div class="book-thumb"><img src="'+b.cover+'" alt=""></div>' : '<div class="book-thumb">📖</div>';
+    const pinIcon = b.isPinned ? '<div style="color:#e74c3c; font-size:18px; margin-right:4px;">📌</div>' : '';
     return '<div class="book-row" data-id="'+b.id+'">'+thumb+
       '<div class="book-row-info">'+
         '<div class="book-row-title">'+esc(b.title||'제목 없음')+'</div>'+
         '<div class="book-row-author">'+esc(b.author||'저자 미상')+'</div>'+
         '<div class="book-row-meta">메모 '+(b.memoCount||0)+'개</div>'+
-      '</div><div class="book-row-arrow">›</div></div>';
+      '</div>' + pinIcon + '<div class="book-row-arrow">›</div></div>';
   }).join('');
   body.querySelectorAll('.book-row').forEach(row=>{
     row.addEventListener('click', ()=>openBook(row.dataset.id));
@@ -353,6 +358,14 @@ function openBook(id){
   const b=books.find(x=>x.id===id); if(!b) return;
   $('book-title-input').value = b.title||'';
   $('book-author-input').value = b.author||'';
+
+  const pinBtn = $('btn-pin-book');
+  if (pinBtn) {
+    pinBtn.textContent = b.isPinned ? '📌 해제' : '📌 고정';
+    pinBtn.style.color = b.isPinned ? 'var(--danger)' : 'var(--text2)';
+    pinBtn.style.background = b.isPinned ? '#fde8e8' : 'var(--bg3)';
+  }
+
   const img=$('cover-img'), hint=$('cover-hint');
   if(b.cover){ img.src=b.cover; img.style.display='block'; hint.style.display='none'; }
   else { img.style.display='none'; hint.style.display='flex'; }
@@ -399,6 +412,29 @@ async function deleteBook(){
   catch(e){ setSyncErr(); toast('삭제 실패'); }
 }
 $('btn-del-book').addEventListener('click', deleteBook);
+
+$('btn-pin-book').addEventListener('click', async () => {
+  if(!curId) return;
+  const b = books.find(x=>x.id===curId);
+  const newPinned = !b.isPinned;
+  setSyncing();
+  try {
+    await updateDoc(doc(db,'books',curId), { isPinned: newPinned });
+    b.isPinned = newPinned;
+    const pinBtn = $('btn-pin-book');
+    if (pinBtn) {
+      pinBtn.textContent = newPinned ? '📌 해제' : '📌 고정';
+      pinBtn.style.color = newPinned ? 'var(--danger)' : 'var(--text2)';
+      pinBtn.style.background = newPinned ? '#fde8e8' : 'var(--bg3)';
+    }
+    books.sort((a,b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
+    renderList();
+    setSynced();
+    toast(newPinned ? '핀으로 고정했습니다' : '핀 고정을 해제했습니다');
+  } catch(e) {
+    setSyncErr(); toast('상태 변경 실패');
+  }
+});
 
 // ── 제목/저자 자동 저장 ──
 function debounceSave(){
