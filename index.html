@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#2e6e38">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<title>나의 서재</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" type="image/png" href="./favicon.png">
@@ -33,6 +34,14 @@ input,textarea{font-family:var(--font);color:var(--text)}
 .sync-dot.ok{background:#3a3}.sync-dot.syncing{background:#fa0;animation:blink .7s infinite}.sync-dot.err{background:#e33}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .list-body{flex:1;overflow-y:auto;padding:14px 14px 100px;display:flex;flex-direction:column;gap:10px}
+.search-wrap{padding:10px 14px 4px;background:var(--bg);position:relative}
+.search-box{position:relative;display:flex;align-items:center}
+.search-icon{position:absolute;left:12px;font-size:14px;color:var(--text3);pointer-events:none}
+.search-input{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:9px 34px 9px 34px;font-size:14px;outline:none;color:var(--text);transition:border-color .15s}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--text3)}
+.search-clear{position:absolute;right:8px;width:22px;height:22px;border-radius:50%;background:var(--bg3);color:var(--text2);font-size:13px;display:none;align-items:center;justify-content:center;line-height:1}
+.search-clear.show{display:flex}
 .book-row{display:flex;align-items:center;gap:14px;padding:12px 14px;border:1.5px solid var(--border2);border-radius:var(--radius);background:var(--surface);cursor:pointer;transition:background .15s}
 .book-row:active{background:var(--bg3)}
 .book-thumb{width:46px;height:62px;border-radius:6px;background:var(--bg2);border:1.5px solid var(--border);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:22px}
@@ -56,6 +65,8 @@ input,textarea{font-family:var(--font);color:var(--text)}
 .cover-upload{width:88px;height:118px;border-radius:10px;background:var(--bg3);border:1.5px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;position:relative;cursor:pointer}
 .cover-upload img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .cover-upload input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.cover-remove-btn{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(26,46,22,.72);color:#fff;font-size:13px;line-height:1;display:none;align-items:center;justify-content:center;z-index:3}
+.cover-remove-btn:active{background:var(--danger)}
 .cover-hint{font-size:10px;color:var(--text3);text-align:center;line-height:1.5;z-index:1;pointer-events:none}
 .cover-hint-icon{font-size:20px;margin-bottom:4px}
 .book-fields{flex:1;display:flex;flex-direction:column;gap:12px}
@@ -85,6 +96,7 @@ input,textarea{font-family:var(--font);color:var(--text)}
 .memo-item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .memo-item-date{font-size:11px;color:var(--text3)}
 .memo-item-btns{display:flex;gap:6px}
+.memo-copy-btn{font-size:11px;color:var(--text2);padding:2px 8px;border-radius:6px;background:var(--bg2);border:1px solid var(--border)}
 .memo-edit-btn{font-size:11px;color:var(--accent);padding:2px 8px;border-radius:6px;background:#d4ebcc;border:1px solid var(--border)}
 .memo-del-btn{font-size:11px;color:var(--text2);padding:2px 8px;border-radius:6px;background:var(--bg2);border:1px solid var(--border)}
 .memo-item-text{font-size:16px;line-height:1.75;color:var(--text);word-break:break-word}
@@ -97,7 +109,7 @@ input,textarea{font-family:var(--font);color:var(--text)}
 .review-wrap{padding:14px 0}
 .review-voice-bar{margin-bottom:10px}
 .review-box{background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--rsm);padding:14px}
-.review-area{width:100%;min-height:240px;background:none;border:none;outline:none;resize:none;font-size:17px;line-height:1.8;color:var(--text)}
+.review-area{width:100%;min-height:240px;background:none;border:none;outline:none;resize:vertical;font-size:17px;line-height:1.8;color:var(--text)}
 .review-area::placeholder{color:var(--text3)}
 .review-count{font-size:11px;color:var(--text3);text-align:right;margin-top:8px;border-top:1px solid var(--border);padding-top:8px}
 .del-book-btn{font-size:13px;color:var(--text2);padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3)}
@@ -168,6 +180,13 @@ input,textarea{font-family:var(--font);color:var(--text)}
       <button id="btn-logout" style="font-size:10px; padding:2px 6px; border-radius:4px; background:var(--bg3); border:1px solid var(--border); color:var(--text2); cursor:pointer;">로그아웃</button>
     </div>
   </div>
+  <div class="search-wrap">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="search-input" type="search" placeholder="책 제목 또는 저자 검색…" autocomplete="off">
+      <button class="search-clear" id="search-clear" type="button" aria-label="검색어 지우기">×</button>
+    </div>
+  </div>
   <div class="list-body" id="list-body">
     <div class="loading-wrap"><div class="spinner"></div><div class="loading-text">불러오는 중…</div></div>
   </div>
@@ -189,6 +208,7 @@ input,textarea{font-family:var(--font);color:var(--text)}
     <div class="cover-section">
       <div class="cover-upload">
         <img id="cover-img" style="display:none">
+        <button class="cover-remove-btn" id="btn-remove-cover" type="button" title="표지 삭제" aria-label="표지 삭제">×</button>
         <div class="cover-hint" id="cover-hint"><div class="cover-hint-icon">🖼</div><div>표지 추가</div></div>
         <input type="file" id="cover-file" accept="image/*">
       </div>
@@ -254,9 +274,9 @@ input,textarea{font-family:var(--font);color:var(--text)}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, doc, onSnapshot, deleteDoc, updateDoc, addDoc, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+import { getFirestore, collection, doc, onSnapshot, deleteDoc, updateDoc, addDoc, getDocs, writeBatch, increment, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 const app = initializeApp({
   apiKey:"AIzaSyDCr6FqxfyXmB8Bzmc_j5DOjJSEvAlF5jc",
@@ -272,10 +292,7 @@ const storage = getStorage(app);
 const ALLOWED_EMAILS = ['2gateless@gmail.com'];
 let currentUser = null;
 
-let books=[], curId=null, saveTimer=null, reviewTimer=null, unsubBooks=null, unsubMemos=null;
-const voiceLang = { memo:'ko-KR', review:'ko-KR' };
-const voiceRec  = { memo:null, review:null };
-const voiceOn   = { memo:false, review:false };
+let books=[], curId=null, saveTimer=null, reviewTimer=null, unsubBooks=null, unsubMemos=null, searchQuery='';
 
 const $  = id => document.getElementById(id);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -301,8 +318,12 @@ const PURIFY_OPTS = {
              'rx','ry','transform','points','encoding']
 };
 function renderMath(raw) {
+  const text = String(raw || '');
+  if (!window.marked || !window.DOMPurify) {
+    return esc(text).replace(/\n/g, '<br>');
+  }
   const blocks = [];
-  let processed = raw
+  let processed = text
     .replace(/\$\$([\s\S]+?)\$\$/g, (_, expr) => {
       const i = blocks.length;
       blocks.push({ d: true, expr: expr.trim() });
@@ -318,11 +339,11 @@ function renderMath(raw) {
     html = html
       .replace(/MATH_BLOCK_(\d+)_END/g, (_, i) => {
         try { return katex.renderToString(blocks[i].expr, { displayMode: true,  throwOnError: false }); }
-        catch(e) { return `<code>$$${blocks[i].expr}$$</code>`; }
+        catch(e) { return `<code>$$${esc(blocks[i].expr)}$$</code>`; }
       })
       .replace(/MATH_INLINE_(\d+)_END/g, (_, i) => {
         try { return katex.renderToString(blocks[i].expr, { displayMode: false, throwOnError: false }); }
-        catch(e) { return `<code>$${blocks[i].expr}$</code>`; }
+        catch(e) { return `<code>$${esc(blocks[i].expr)}$</code>`; }
       });
   }
   return DOMPurify.sanitize(html, PURIFY_OPTS);
@@ -391,6 +412,7 @@ $('tab-review-btn').addEventListener('click', ()=>{
 
 // ── 책 목록 ──
 function subscribeBooks(){
+  if(unsubBooks){ unsubBooks(); unsubBooks=null; }
   setSyncing();
   unsubBooks = onSnapshot(query(collection(db,'books'),orderBy('createdAt','desc')), snap=>{
     books = snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -401,12 +423,17 @@ function subscribeBooks(){
 
 function renderList(){
   const body=$('list-body');
-  $('book-count-label').textContent='읽은 책 '+books.length+'권';
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = q
+    ? books.filter(b => (b.title||'').toLowerCase().includes(q) || (b.author||'').toLowerCase().includes(q))
+    : books;
+  $('book-count-label').textContent = q ? `검색 결과 ${filtered.length} / ${books.length}권` : `읽은 책 ${books.length}권`;
   if(!books.length){ body.innerHTML='<div class="empty-state"><div class="big-icon">📚</div><p>아직 책이 없어요.<br>첫 번째 책을 추가해볼까요?</p></div>'; return; }
-  body.innerHTML = books.map(b=>{
-    const thumb = b.cover ? '<div class="book-thumb"><img src="'+b.cover+'" alt=""></div>' : '<div class="book-thumb">📖</div>';
+  if(!filtered.length){ body.innerHTML='<div class="empty-state"><div class="big-icon">🔍</div><p>검색 결과가 없어요.</p></div>'; return; }
+  body.innerHTML = filtered.map(b=>{
+    const thumb = b.cover ? '<div class="book-thumb"><img src="'+esc(b.cover)+'" alt=""></div>' : '<div class="book-thumb">📖</div>';
     const pinIcon = b.isPinned ? '<div style="color:#e74c3c; font-size:18px; margin-right:4px;">📌</div>' : '';
-    return '<div class="book-row" data-id="'+b.id+'">'+thumb+
+    return '<div class="book-row" data-id="'+esc(b.id)+'">'+thumb+
       '<div class="book-row-info">'+
         '<div class="book-row-title">'+esc(b.title||'제목 없음')+'</div>'+
         '<div class="book-row-author">'+esc(b.author||'저자 미상')+'</div>'+
@@ -418,8 +445,37 @@ function renderList(){
   });
 }
 
+$('search-input').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  $('search-clear').classList.toggle('show', searchQuery.length > 0);
+  renderList();
+});
+$('search-clear').addEventListener('click', () => {
+  searchQuery = '';
+  $('search-input').value = '';
+  $('search-clear').classList.remove('show');
+  $('search-input').focus();
+  renderList();
+});
+
+async function flushPendingSaves(){
+  const targetId = curId;
+  if(!targetId) return;
+  if(saveTimer){
+    clearTimeout(saveTimer); saveTimer=null;
+    try{ await updateDoc(doc(db,'books',targetId),{title:$('book-title-input').value,author:$('book-author-input').value}); }
+    catch(e){ console.error(e); }
+  }
+  if(reviewTimer){
+    clearTimeout(reviewTimer); reviewTimer=null;
+    try{ await updateDoc(doc(db,'books',targetId),{review:$('review-input').value}); }
+    catch(e){ console.error(e); }
+  }
+}
+
 // ── 책 열기 ──
 function openBook(id){
+  if(curId && curId !== id) flushPendingSaves();
   curId=id;
   const b=books.find(x=>x.id===id); if(!b) return;
   $('book-title-input').value = b.title||'';
@@ -432,9 +488,9 @@ function openBook(id){
     pinBtn.style.background = b.isPinned ? '#fde8e8' : 'var(--bg3)';
   }
 
-  const img=$('cover-img'), hint=$('cover-hint');
-  if(b.cover){ img.src=b.cover; img.style.display='block'; hint.style.display='none'; }
-  else { img.style.display='none'; hint.style.display='flex'; }
+  const img=$('cover-img'), hint=$('cover-hint'), rmBtn=$('btn-remove-cover');
+  if(b.cover){ img.src=b.cover; img.style.display='block'; hint.style.display='none'; if(rmBtn) rmBtn.style.display='flex'; }
+  else { img.removeAttribute('src'); img.style.display='none'; hint.style.display='flex'; if(rmBtn) rmBtn.style.display='none'; }
   subscribeMemos(id);
   $('review-input').value = b.review||'';
   $('review-count').textContent = (b.review||'').length+'자';
@@ -443,12 +499,15 @@ function openBook(id){
   if($('btn-review-toggle')) $('btn-review-toggle').textContent = '미리보기';
   $('tab-memo-btn').click();
   showScreen('detail');
-  history.pushState({page:'detail'}, '');
+  if(!history.state || history.state.page !== 'detail'){
+    history.pushState({page:'detail', id}, '');
+  }
 }
 
 function goList(){
+  flushPendingSaves();
   if(unsubMemos){ unsubMemos(); unsubMemos=null; }
-  stopVoice('memo'); stopVoice('review');
+  curId=null;
   showScreen('list');
 }
 // btn-back은 popstate에서 처리
@@ -460,22 +519,50 @@ $('fab-add').addEventListener('click', openModal);
 $('btn-cancel-add').addEventListener('click', closeModal);
 $('add-modal').addEventListener('click', e=>{ if(e.target===$('add-modal')) closeModal(); });
 $('new-title').addEventListener('keydown', e=>{ if(e.key==='Enter') addBook(); });
+$('new-author').addEventListener('keydown', e=>{ if(e.key==='Enter') addBook(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && $('add-modal').classList.contains('open')) closeModal(); });
 
 async function addBook(){
   const title=$('new-title').value.trim(); if(!title){ $('new-title').focus(); return; }
+  const btn=$('btn-confirm-add');
+  if(btn.disabled) return;
+  btn.disabled=true;
   setSyncing();
   try{
-    const ref=await addDoc(collection(db,'books'),{title,author:$('new-author').value.trim(),cover:null,review:'',memoCount:0,createdAt:serverTimestamp()});
-    closeModal(); openBook(ref.id); toast('책이 추가됐어요'); setSynced();
+    const docRef=await addDoc(collection(db,'books'),{title,author:$('new-author').value.trim(),cover:null,review:'',memoCount:0,createdAt:serverTimestamp()});
+    closeModal();
+    books.unshift({id:docRef.id,title,author:$('new-author').value.trim(),cover:null,review:'',memoCount:0,isPinned:false});
+    openBook(docRef.id);
+    toast('책이 추가됐어요'); setSynced();
   }catch(e){ setSyncErr(); toast('저장 실패: '+e.message); }
+  finally{ btn.disabled=false; }
 }
 $('btn-confirm-add').addEventListener('click', addBook);
 
 async function deleteBook(){
+  if(!curId) return;
   if(!confirm('이 책의 모든 내용이 삭제됩니다. 계속할까요?')) return;
+  const targetId = curId;
+  const book = books.find(x=>x.id===targetId);
+  clearTimeout(saveTimer); saveTimer=null;
+  clearTimeout(reviewTimer); reviewTimer=null;
   setSyncing();
-  try{ await deleteDoc(doc(db,'books',curId)); goList(); toast('삭제됐어요'); setSynced(); }
-  catch(e){ setSyncErr(); toast('삭제 실패'); }
+  try{
+    const memoSnap = await getDocs(collection(db,'books',targetId,'memos'));
+    if(!memoSnap.empty){
+      const batch = writeBatch(db);
+      memoSnap.forEach(d=>batch.delete(d.ref));
+      await batch.commit();
+    }
+    if(book && book.cover){
+      try{ await deleteObject(ref(storage, book.cover)); }catch(_){}
+    }
+    await deleteDoc(doc(db,'books',targetId));
+    curId=null;
+    if(history.state && history.state.page==='detail') history.back();
+    else goList();
+    toast('삭제됐어요'); setSynced();
+  }catch(e){ setSyncErr(); toast('삭제 실패'); }
 }
 $('btn-del-book').addEventListener('click', deleteBook);
 
@@ -516,24 +603,51 @@ $('book-author-input').addEventListener('input', debounceSave);
 
 // ── 표지 ──
 $('cover-file').addEventListener('change', async function(e){
-  const file=e.target.files[0]; if(!file) return;
+  const file=e.target.files[0]; if(!file||!curId) return;
+  const targetId = curId;
   setSyncing();
   try{
     const resizedBlob = await resizeImage(file, 400, 600);
-    const storageRef = ref(storage, `covers/${currentUser ? currentUser.uid : 'anon'}/${curId}_${Date.now()}`);
+    const storageRef = ref(storage, `covers/${currentUser ? currentUser.uid : 'anon'}/${targetId}_${Date.now()}`);
     await uploadBytes(storageRef, resizedBlob);
     const downloadURL = await getDownloadURL(storageRef);
     
-    const img=$('cover-img'), hint=$('cover-hint');
-    img.src=downloadURL; img.style.display='block'; hint.style.display='none';
+    const img=$('cover-img'), hint=$('cover-hint'), rmBtn=$('btn-remove-cover');
+    if(curId===targetId){
+      img.src=downloadURL; img.style.display='block'; hint.style.display='none';
+      if(rmBtn) rmBtn.style.display='flex';
+    }
     
-    await updateDoc(doc(db,'books',curId),{cover:downloadURL});
+    await updateDoc(doc(db,'books',targetId),{cover:downloadURL});
     setSynced();
     toast('표지가 저장됐어요');
   }catch(e){
     console.error(e);
     setSyncErr();
     toast('표지 저장 실패: ' + e.message);
+  }finally{
+    e.target.value='';
+  }
+});
+
+$('btn-remove-cover').addEventListener('click', async e => {
+  e.stopPropagation();
+  if(!curId || !confirm('표지 이미지를 삭제할까요?')) return;
+  const targetId = curId;
+  const book = books.find(x=>x.id===targetId);
+  setSyncing();
+  try{
+    if(book && book.cover){
+      try{ await deleteObject(ref(storage, book.cover)); }catch(_){}
+    }
+    await updateDoc(doc(db,'books',targetId),{cover:null});
+    const img=$('cover-img'), hint=$('cover-hint'), rmBtn=$('btn-remove-cover');
+    img.removeAttribute('src'); img.style.display='none'; hint.style.display='flex'; rmBtn.style.display='none';
+    setSynced();
+    toast('표지가 삭제됐어요');
+  }catch(err){
+    setSyncErr();
+    toast('표지 삭제 실패');
   }
 });
 
@@ -549,29 +663,42 @@ function renderMemos(memos){
   const list=$('memo-list'), lbl=$('memo-count-label');
   if(!list||!lbl) return;
   lbl.textContent='메모 '+memos.length+'개';
+  const curBook = books.find(x=>x.id===curId);
+  if(curBook && (curBook.memoCount||0) !== memos.length){
+    updateDoc(doc(db,'books',curId),{memoCount:memos.length}).catch(()=>{});
+  }
   if(!memos.length){ list.innerHTML='<div class="memo-empty">아직 메모가 없어요</div>'; return; }
   list.innerHTML=memos.map(m=>{
     const d=m.createdAt?m.createdAt.toDate():new Date();
     const ds=d.getFullYear()+'.'+p2(d.getMonth()+1)+'.'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes());
-    return '<div class="memo-item" id="mi-'+m.id+'">'+
+    return '<div class="memo-item" id="mi-'+esc(m.id)+'">'+
       '<div class="memo-item-head">'+
         '<span class="memo-item-date">'+ds+'</span>'+
         '<div class="memo-item-btns">'+
-          '<button class="memo-edit-btn" data-id="'+m.id+'">수정</button>'+
-          '<button class="memo-del-btn"  data-id="'+m.id+'">삭제</button>'+
+          '<button class="memo-copy-btn" data-id="'+esc(m.id)+'">복사</button>'+
+          '<button class="memo-edit-btn" data-id="'+esc(m.id)+'">수정</button>'+
+          '<button class="memo-del-btn"  data-id="'+esc(m.id)+'">삭제</button>'+
         '</div>'+
       '</div>'+
-      '<div class="memo-item-text md-content" id="mt-'+m.id+'">'+renderMath(m.text)+'</div>'+
-      '<div class="memo-edit-wrap" id="mew-'+m.id+'" style="display:none">'+
-        '<textarea class="memo-edit-area" id="mta-'+m.id+'">'+esc(m.text)+'</textarea>'+
+      '<div class="memo-item-text md-content" id="mt-'+esc(m.id)+'">'+renderMath(m.text)+'</div>'+
+      '<div class="memo-edit-wrap" id="mew-'+esc(m.id)+'" style="display:none">'+
+        '<textarea class="memo-edit-area" id="mta-'+esc(m.id)+'">'+esc(m.text)+'</textarea>'+
         '<div class="memo-edit-footer">'+
-          '<button class="memo-cancel-btn"    data-id="'+m.id+'">취소</button>'+
-          '<button class="memo-save-edit-btn" data-id="'+m.id+'">저장</button>'+
+          '<button class="memo-cancel-btn"    data-id="'+esc(m.id)+'">취소</button>'+
+          '<button class="memo-save-edit-btn" data-id="'+esc(m.id)+'">저장</button>'+
         '</div>'+
       '</div>'+
     '</div>';
   }).join('');
 
+  list.querySelectorAll('.memo-copy-btn').forEach(btn=>{
+    btn.addEventListener('click', async()=>{
+      const m = memos.find(x=>x.id===btn.dataset.id);
+      if(!m) return;
+      try{ await navigator.clipboard.writeText(m.text); toast('메모가 복사됐어요'); }
+      catch(e){ toast('복사에 실패했어요'); }
+    });
+  });
   list.querySelectorAll('.memo-edit-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const id=btn.dataset.id;
@@ -580,8 +707,18 @@ function renderMemos(memos){
       const ta = $('mta-'+id);
       ta.focus();
       setTimeout(() => ta.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
-      ta.addEventListener('keydown', handleScrollIntoView);
-      ta.addEventListener('input', handleScrollIntoView);
+    });
+  });
+  list.querySelectorAll('.memo-edit-area').forEach(ta=>{
+    ta.addEventListener('keydown', e=>{
+      const id = ta.id.replace('mta-','');
+      if(e.key==='Escape'){
+        $('mt-'+id).style.display='block';
+        $('mew-'+id).style.display='none';
+      } else if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){
+        const saveBtn = document.querySelector('.memo-save-edit-btn[data-id="'+id+'"]');
+        if(saveBtn) saveBtn.click();
+      }
     });
   });
   list.querySelectorAll('.memo-cancel-btn').forEach(btn=>{
@@ -606,8 +743,7 @@ function renderMemos(memos){
       const id=btn.dataset.id; setSyncing();
       try{
         await deleteDoc(doc(db,'books',curId,'memos',id));
-        const b=books.find(x=>x.id===curId);
-        await updateDoc(doc(db,'books',curId),{memoCount:Math.max(0,(b?b.memoCount||1:1)-1)});
+        await updateDoc(doc(db,'books',curId),{memoCount:increment(-1)});
         setSynced(); toast('메모가 삭제됐어요');
       }catch(e){ setSyncErr(); toast('삭제 실패'); }
     });
@@ -617,29 +753,26 @@ function renderMemos(memos){
 // ── 메모 추가 ──
 async function addMemo(){
   const inp=$('memo-input'), text=inp.value.trim(); if(!text||!curId) return;
+  const btn=$('btn-add-memo');
+  if(btn.disabled) return;
+  btn.disabled=true;
   setSyncing();
   try{
     await addDoc(collection(db,'books',curId,'memos'),{text,createdAt:serverTimestamp()});
-    const b=books.find(x=>x.id===curId);
-    await updateDoc(doc(db,'books',curId),{memoCount:(b?b.memoCount||0:0)+1});
+    await updateDoc(doc(db,'books',curId),{memoCount:increment(1)});
     inp.value=''; setSynced(); toast('메모가 저장됐어요');
   }catch(e){ setSyncErr(); toast('저장 실패'); }
+  finally{ btn.disabled=false; }
 }
 $('btn-add-memo').addEventListener('click', addMemo);
 $('memo-input').addEventListener('keydown', e=>{ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)) addMemo(); });
 
 const handleScrollIntoView = (e) => {
-  if (e.key === 'Enter' || e.type === 'input' || e.type === 'focus') {
-    setTimeout(() => {
-      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 150);
-  }
+  setTimeout(() => {
+    e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 150);
 };
-$('memo-input').addEventListener('keydown', handleScrollIntoView);
-$('memo-input').addEventListener('input', handleScrollIntoView);
 $('memo-input').addEventListener('focus', handleScrollIntoView);
-$('review-input').addEventListener('keydown', handleScrollIntoView);
-$('review-input').addEventListener('input', handleScrollIntoView);
 $('review-input').addEventListener('focus', handleScrollIntoView);
 
 // ── 독후감 ──
@@ -660,8 +793,9 @@ if($('btn-review-toggle')) {
   $('btn-review-toggle').addEventListener('click', ()=>{
     const isEdit = $('review-input').style.display !== 'none';
     if(isEdit){
+      const val = $('review-input').value;
       $('review-input').style.display = 'none';
-      $('review-display').innerHTML = renderMath($('review-input').value);
+      $('review-display').innerHTML = val.trim() ? renderMath(val) : '<div class="memo-empty">작성된 독후감이 없어요</div>';
       $('review-display').style.display = 'block';
       $('btn-review-toggle').textContent = '수정';
     } else {
@@ -672,30 +806,18 @@ if($('btn-review-toggle')) {
   });
 }
 
-// ── 음성 인식 ──
-function stopVoice(target){
-  if(voiceRec[target]){ voiceRec[target].abort(); voiceRec[target]=null; }
-  voiceOn[target]=false;
-  const btn=$(target+'-voice-btn'), st=$(target+'-voice-status');
-  if(btn){ btn.classList.remove('listening'); btn.textContent='🎤'; }
-  if(st){ st.textContent='키보드 마이크로 입력하세요'; st.classList.remove('active'); }
-}
-
-function startVoice(target){
-  const ta=$(target==='memo'?'memo-input':'review-input');
-  const st=$(target+'-voice-status');
-  ta.focus();
-  st.textContent='키보드 마이크 버튼을 눌러 말씀하세요';
-}
-
 function showRootScreen(id) {
   ['auth-screen', 'denied-screen', 'app'].forEach(sid => {
     const el = $(sid);
     if(el) el.style.display = 'none';
   });
   const el = $(id);
-  if(el) el.style.display = id === 'app' ? 'flex' : 'flex';
+  if(el) el.style.display = 'flex';
 }
+
+getRedirectResult(auth).catch(e => {
+  if(e && e.code !== 'auth/null-user') toast('로그인 실패: ' + e.message);
+});
 
 onAuthStateChanged(auth, user => {
   if (user) {
@@ -712,30 +834,44 @@ onAuthStateChanged(auth, user => {
     currentUser = null;
     showRootScreen('auth-screen');
     if (unsubBooks) { unsubBooks(); unsubBooks = null; }
+    if (unsubMemos) { unsubMemos(); unsubMemos = null; }
   }
 });
 
 $('btn-google-login').onclick = async () => {
-  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-  catch(e) { toast('로그인 실패: ' + e.message); }
+  const provider = new GoogleAuthProvider();
+  try { await signInWithPopup(auth, provider); }
+  catch(e) {
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
+      await signInWithRedirect(auth, provider);
+    } else {
+      toast('로그인 실패: ' + e.message);
+    }
+  }
 };
 $('btn-denied-signout').onclick = () => signOut(auth);
 $('btn-logout').onclick = () => signOut(auth);
 
 // ── 안드로이드 뒤로가기 처리 ──
-history.pushState({page:'list'}, '');
+history.replaceState({page:'list'}, '');
 
-window.addEventListener('popstate', e => {
+window.addEventListener('popstate', () => {
+  if($('add-modal').classList.contains('open')) {
+    closeModal();
+    return;
+  }
   const detail = $('screen-detail');
   if(detail && detail.classList.contains('active')) {
     goList();
-    history.pushState({page:'list'}, '');
   }
 });
 
 $('btn-back').addEventListener('click', () => {
-  goList();
-  history.pushState({page:'list'}, '');
+  if(history.state && history.state.page === 'detail') {
+    history.back();
+  } else {
+    goList();
+  }
 });</script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const CACHE = 'reading-v10';
+const CACHE = 'reading-v11';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -25,10 +25,13 @@ self.addEventListener('fetch', e => {
     return;
   }
   // 나머지(아이콘, manifest 등)는 캐시 우선
+  if (e.request.method !== 'GET') return;
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request).then(res => {
-      const clone = res.clone();
-      caches.open(CACHE).then(c => c.put(e.request, clone));
+      if (res && res.ok) {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+      }
       return res;
     }))
   );
